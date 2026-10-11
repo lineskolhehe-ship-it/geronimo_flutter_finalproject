@@ -1,0 +1,55 @@
+import '../models/product.dart';
+
+/// Fallback data used when the API cannot be reached (e.g. no internet).
+const List<Product> sampleProducts = [
+  Product(
+    id: 1001,
+    title: 'Native Tomatoes',
+    description: 'Freshly picked tomatoes from a local farm.',
+    category: 'vegetables',
+    price: 1.20,
+    rating: 4.6,
+    stock: 40,
+    thumbnail: '',
+  ),
+  Product(
+    id: 1002,
+    title: 'Carabao Mangoes',
+    description: 'Sweet, ripe mangoes from the hillside orchard.',
+    category: 'fruits',
+    price: 2.40,
+    rating: 4.8,
+    stock: 25,
+    thumbnail: '',
+  ),
+  Product(
+    id: 1003,
+    title: 'Organic Eggplant',
+    description: 'Tender eggplant harvested this morning.',
+    category: 'vegetables',
+    price: 1.00,
+    rating: 4.4,
+    stock: 30,
+    thumbnail: '',
+  ),
+  Product(
+    id: 1004,
+    title: 'Brown Rice',
+    description: 'Locally milled brown rice.',
+    category: 'grains',
+    price: 1.10,
+    rating: 4.5,
+    stock: 60,
+    thumbnail: '',
+  ),
+  Product(
+    id: 1005,
+    title: 'Free-range Eggs',
+    description: 'Eggs from free-range native chickens.',
+    category: 'poultry',
+    price: 0.20,
+    rating: 4.7,
+    stock: 100,
+    thumbnail: '',
+  ),
+];
