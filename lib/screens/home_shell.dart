@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/storage_service.dart';
 import 'basket_screen.dart';
+import 'checkout_screen.dart';
 import 'market_screen.dart';
+import 'product_detail_screen.dart';
 
-/// Holds the bottom navigation and the shared basket state (via setState).
+/// Holds the bottom navigation, the shared basket state (via setState),
+/// and remembers which page is open so a refresh returns to it.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -20,19 +23,61 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
-    _restoreCart();
+    _restore();
   }
 
-  Future<void> _restoreCart() async {
-    final saved = await _storage.loadCart();
+  Future<void> _restore() async {
+    final cart = await _storage.loadCart();
+    final tab = await _storage.loadTab();
+    final open = await _storage.loadOpenScreen();
     if (!mounted) return;
     setState(() {
-      _cart.clear();
-      _cart.addAll(saved);
+      _cart
+        ..clear()
+        ..addAll(cart);
+      _index = tab;
     });
+    if (open == null) return;
+    if (open['type'] == 'detail' && open['product'] != null) {
+      _openProduct(Product.fromJson(open['product'] as Map<String, dynamic>));
+    } else if (open['type'] == 'checkout' && _cart.isNotEmpty) {
+      _openCheckout();
+    } else {
+      await _storage.clearOpenScreen();
+    }
   }
 
   int get _itemCount => _cart.fold(0, (sum, item) => sum + item.quantity);
+  double get _total => _cart.fold(0, (sum, item) => sum + item.total);
+
+  Future<void> _openProduct(Product product) async {
+    await _storage.saveOpenScreen('detail', product: product);
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ProductDetailScreen(product: product, onAddToCart: _addToCart),
+      ),
+    );
+    await _storage.clearOpenScreen();
+  }
+
+  Future<void> _openCheckout() async {
+    await _storage.saveOpenScreen('checkout');
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CheckoutScreen(
+          total: _total,
+          itemCount: _itemCount,
+          onOrderPlaced: _clearCart,
+        ),
+      ),
+    );
+    await _storage.clearOpenScreen();
+  }
 
   void _addToCart(Product product) {
     setState(() {
@@ -93,18 +138,24 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          MarketScreen(onAddToCart: _addToCart),
+          MarketScreen(
+            onAddToCart: _addToCart,
+            onOpenProduct: _openProduct,
+          ),
           BasketScreen(
             cart: _cart,
             onChangeQuantity: _changeQuantity,
             onRemove: _removeItem,
-            onOrderPlaced: _clearCart,
+            onCheckout: _openCheckout,
           ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) {
+          setState(() => _index = i);
+          _storage.saveTab(i);
+        },
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.storefront_outlined),

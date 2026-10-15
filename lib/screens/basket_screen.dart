@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../widgets/state_widgets.dart';
-import 'checkout_screen.dart';
 
 class BasketScreen extends StatelessWidget {
   final List<CartItem> cart;
   final void Function(CartItem, int) onChangeQuantity;
   final void Function(CartItem) onRemove;
-  final VoidCallback onOrderPlaced;
+  final VoidCallback onCheckout;
 
   const BasketScreen({
     super.key,
     required this.cart,
     required this.onChangeQuantity,
     required this.onRemove,
-    required this.onOrderPlaced,
+    required this.onCheckout,
   });
 
   double get _total => cart.fold(0, (sum, item) => sum + item.total);
@@ -146,16 +145,7 @@ class BasketScreen extends StatelessWidget {
                           ),
                         ),
                         FilledButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CheckoutScreen(
-                                total: _total,
-                                itemCount: _itemCount,
-                                onOrderPlaced: onOrderPlaced,
-                              ),
-                            ),
-                          ),
+                          onPressed: onCheckout,
                           child: const Text('Checkout'),
                         ),
                       ],

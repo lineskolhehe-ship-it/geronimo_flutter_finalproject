@@ -5,12 +5,16 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/state_widgets.dart';
-import 'product_detail_screen.dart';
 
 class MarketScreen extends StatefulWidget {
   final void Function(Product) onAddToCart;
+  final void Function(Product) onOpenProduct;
 
-  const MarketScreen({super.key, required this.onAddToCart});
+  const MarketScreen({
+    super.key,
+    required this.onAddToCart,
+    required this.onOpenProduct,
+  });
 
   @override
   State<MarketScreen> createState() => _MarketScreenState();
@@ -54,13 +58,28 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Future<void> _load({bool useSample = false}) async {
+    final hadData = _products.isNotEmpty;
     setState(() {
-      _loading = true;
       _error = null;
+      _loading = !hadData;
     });
+
+    // Show the last saved list immediately while the fresh one loads.
+    if (!hadData && !useSample) {
+      final cached = await _storage.loadProducts();
+      if (!mounted) return;
+      if (cached.isNotEmpty) {
+        setState(() {
+          _products = cached;
+          _loading = false;
+        });
+      }
+    }
+
     try {
       final data = useSample ? sampleProducts : await _api.fetchProducts();
       if (!mounted) return;
+      if (!useSample) _storage.saveProducts(data);
       setState(() {
         _products = data;
         _loading = false;
@@ -68,8 +87,10 @@ class _MarketScreenState extends State<MarketScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not load products. Check your internet connection.';
         _loading = false;
+        if (_products.isEmpty) {
+          _error = 'Could not load products. Check your internet connection.';
+        }
       });
     }
   }
@@ -141,15 +162,7 @@ class _MarketScreenState extends State<MarketScreen> {
           return ProductCard(
             product: product,
             onAdd: () => widget.onAddToCart(product),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProductDetailScreen(
-                  product: product,
-                  onAddToCart: widget.onAddToCart,
-                ),
-              ),
-            ),
+            onTap: () => widget.onOpenProduct(product),
           );
         },
       ),
