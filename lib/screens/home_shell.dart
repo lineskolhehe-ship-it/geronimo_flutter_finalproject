@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../services/storage_service.dart';
 import 'basket_screen.dart';
 import 'market_screen.dart';
 
@@ -12,8 +13,24 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
+  final StorageService _storage = StorageService();
   int _index = 0;
   final List<CartItem> _cart = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreCart();
+  }
+
+  Future<void> _restoreCart() async {
+    final saved = await _storage.loadCart();
+    if (!mounted) return;
+    setState(() {
+      _cart.clear();
+      _cart.addAll(saved);
+    });
+  }
 
   int get _itemCount => _cart.fold(0, (sum, item) => sum + item.quantity);
 
@@ -26,6 +43,7 @@ class _HomeShellState extends State<HomeShell> {
         _cart.add(CartItem(product: product));
       }
     });
+    _storage.saveCart(_cart);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
@@ -39,12 +57,14 @@ class _HomeShellState extends State<HomeShell> {
       item.quantity += delta;
       if (item.quantity < 1) item.quantity = 1;
     });
+    _storage.saveCart(_cart);
   }
 
   /// Called after the user confirmed the delete dialog.
   void _removeItem(CartItem item) {
     final index = _cart.indexOf(item);
     setState(() => _cart.remove(item));
+    _storage.saveCart(_cart);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
@@ -56,12 +76,16 @@ class _HomeShellState extends State<HomeShell> {
               final at = index > _cart.length ? _cart.length : index;
               _cart.insert(at, item);
             });
+            _storage.saveCart(_cart);
           },
         ),
       ));
   }
 
-  void _clearCart() => setState(() => _cart.clear());
+  void _clearCart() {
+    setState(() => _cart.clear());
+    _storage.saveCart(_cart);
+  }
 
   @override
   Widget build(BuildContext context) {

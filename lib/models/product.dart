@@ -31,6 +31,17 @@ class Product {
       thumbnail: json['thumbnail']?.toString() ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'description': description,
+        'category': category,
+        'price': price,
+        'rating': rating,
+        'stock': stock,
+        'thumbnail': thumbnail,
+      };
 }
 
 class CartItem {
@@ -40,4 +51,16 @@ class CartItem {
   CartItem({required this.product, this.quantity = 1});
 
   double get total => product.price * quantity;
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    return CartItem(
+      product: Product.fromJson(json['product'] as Map<String, dynamic>),
+      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'product': product.toJson(),
+        'quantity': quantity,
+      };
 }

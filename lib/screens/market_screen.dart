@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/sample_products.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../services/storage_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/state_widgets.dart';
 import 'product_detail_screen.dart';
@@ -17,6 +18,8 @@ class MarketScreen extends StatefulWidget {
 
 class _MarketScreenState extends State<MarketScreen> {
   final ApiService _api = ApiService();
+  final StorageService _storage = StorageService();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Product> _products = [];
   bool _loading = true;
@@ -26,7 +29,28 @@ class _MarketScreenState extends State<MarketScreen> {
   @override
   void initState() {
     super.initState();
+    _restoreSearch();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _restoreSearch() async {
+    final saved = await _storage.loadSearch();
+    if (!mounted || saved.isEmpty) return;
+    setState(() {
+      _query = saved;
+      _searchController.text = saved;
+    });
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() => _query = value);
+    _storage.saveSearch(value);
   }
 
   Future<void> _load({bool useSample = false}) async {
@@ -63,9 +87,20 @@ class _MarketScreenState extends State<MarketScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search fresh produce...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      ),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -73,7 +108,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              onChanged: (value) => setState(() => _query = value),
+              onChanged: _onSearchChanged,
             ),
           ),
           Expanded(child: _buildBody()),

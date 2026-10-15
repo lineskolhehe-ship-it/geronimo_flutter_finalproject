@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/storage_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final double total;
@@ -18,9 +19,16 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _storage = StorageService();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreDraft();
+  }
 
   @override
   void dispose() {
@@ -28,6 +36,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDraft() async {
+    final draft = await _storage.loadCheckoutDraft();
+    if (!mounted) return;
+    _nameController.text = draft['name'] ?? '';
+    _phoneController.text = draft['phone'] ?? '';
+    _addressController.text = draft['address'] ?? '';
+  }
+
+  void _saveDraft() {
+    _storage.saveCheckoutDraft(
+      name: _nameController.text,
+      phone: _phoneController.text,
+      address: _addressController.text,
+    );
   }
 
   Future<void> _submit() async {
@@ -50,6 +74,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
       ),
     );
+    await _storage.clearCheckoutDraft();
     if (!mounted) return;
     widget.onOrderPlaced();
     Navigator.pop(context);
@@ -74,6 +99,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               TextFormField(
                 controller: _nameController,
                 textInputAction: TextInputAction.next,
+                onChanged: (_) => _saveDraft(),
                 decoration: const InputDecoration(
                   labelText: 'Full name',
                   prefixIcon: Icon(Icons.person),
@@ -91,6 +117,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
+                onChanged: (_) => _saveDraft(),
                 decoration: const InputDecoration(
                   labelText: 'Phone number',
                   prefixIcon: Icon(Icons.phone),
@@ -108,6 +135,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               TextFormField(
                 controller: _addressController,
                 maxLines: 2,
+                onChanged: (_) => _saveDraft(),
                 decoration: const InputDecoration(
                   labelText: 'Delivery address',
                   prefixIcon: Icon(Icons.location_on),
